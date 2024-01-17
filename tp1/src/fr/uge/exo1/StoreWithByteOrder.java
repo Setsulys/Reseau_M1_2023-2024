@@ -1,6 +1,8 @@
-package fr.upem.net.buffers;
+package fr.uge.exo1;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.Scanner;
@@ -21,13 +23,13 @@ public class StoreWithByteOrder {
 		var path = Path.of(args[1]);
 
 		// TODO
+		var buffer = ByteBuffer.allocate(1024);
 
 		switch (args[0].toUpperCase()) {
 		case "LE":
-			// TODO
+			buffer.order(ByteOrder.LITTLE_ENDIAN);
 			break;
 		case "BE":
-			// TODO
 			break;
 		default:
 			System.out.println("Unrecognized option : " + args[0]);
@@ -39,8 +41,15 @@ public class StoreWithByteOrder {
 				var scanner = new Scanner(System.in)) {
 			while (scanner.hasNextLong()) {
 				var l = scanner.nextLong();
-				// TODO
+				if(buffer.remaining() <= Long.BYTES) {
+					buffer.flip();
+					outChannel.write(buffer);
+					buffer.clear();
+				}
+				buffer.putLong(l);
 			}
+			buffer.flip();
+			outChannel.write(buffer);
 		}
 	}
 }
