@@ -47,7 +47,7 @@ public class DecoderOnTheFly {
     			byteBuffer.flip();
     			charBuffer.append(charsetDecoder.onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE).decode(byteBuffer));
     			charBuffer.flip();
-    			string.append(charBuffer);
+    			string.append(charBuffer).append("\n");
        			byteBuffer.clear();
        			charBuffer.clear();
     		}
@@ -56,7 +56,7 @@ public class DecoderOnTheFly {
     	byteBuffer.flip();
     	charBuffer.append(charsetDecoder.onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE).decode(byteBuffer));
     	charBuffer.flip();
-        return string.toString()+charBuffer.toString();
+        return string.toString()+"\n"+charBuffer.toString();
     }
 
     public static void main(String[] args) throws IOException {
