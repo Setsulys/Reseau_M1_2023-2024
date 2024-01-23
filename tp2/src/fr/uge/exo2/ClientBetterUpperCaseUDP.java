@@ -58,7 +58,7 @@ public class ClientBetterUpperCaseUDP {
 	public static Optional<String> decodeMessage(ByteBuffer buffer) {
 		buffer.flip();
 		if(buffer.remaining() < Integer.BYTES) {
-			return Optional.empty();
+			return Optional.empty(); 
 		}
 		var size = buffer.getInt();
 		if(size <=0||buffer.remaining() < size) {
