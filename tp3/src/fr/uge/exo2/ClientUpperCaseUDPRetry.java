@@ -53,7 +53,7 @@ public class ClientUpperCaseUDPRetry {
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,"IOException ",e);
 					} catch (InterruptedException e) {
-						logger.log(Level.WARNING,"Interrupted Exception",e);
+						logger.info("Interrupted Exception ");
 					}	
 				}
 
