@@ -22,7 +22,7 @@ public class NetcatUDP {
 
         var server = new InetSocketAddress(args[0], Integer.parseInt(args[1]));
         var cs = Charset.forName(args[2]);
-        var buffer = ByteBuffer.allocate(BUFFER_SIZE);
+        var buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
         var dc = DatagramChannel.open();
         dc.bind(null);
 

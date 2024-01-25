@@ -41,7 +41,7 @@ public class StoreWithByteOrder {
 				var scanner = new Scanner(System.in)) {
 			while (scanner.hasNextLong()) {
 				var l = scanner.nextLong();
-				if(buffer.remaining() <= Long.BYTES) {
+				if(buffer.remaining() < Long.BYTES) {
 					buffer.flip();
 					outChannel.write(buffer);
 					buffer.clear();

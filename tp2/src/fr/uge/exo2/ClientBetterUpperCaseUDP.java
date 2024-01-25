@@ -13,7 +13,7 @@ public class ClientBetterUpperCaseUDP {
 	private static final int MAX_PACKET_SIZE = 1024;
 
 	private static Charset ASCII_CHARSET = StandardCharsets.US_ASCII; //Charset.forName("US-ASCII");
-	
+
 	/**
 	 * Creates and returns an Optional containing a new ByteBuffer containing the encoded representation 
 	 * of the String <code>msg</code> using the charset <code>charsetName</code> 
@@ -34,7 +34,7 @@ public class ClientBetterUpperCaseUDP {
 		var bb = ByteBuffer.allocate(MAX_PACKET_SIZE);
 		var csb =ASCII_CHARSET.encode(charsetName);
 		var msgb = Charset.forName(charsetName).encode(msg);
-		if((Integer.BYTES +msgb.remaining()+csb.remaining())>1024) {
+		if((Integer.BYTES +msgb.remaining()+csb.remaining())>MAX_PACKET_SIZE) {
 			return Optional.empty();
 		}
 		bb.putInt(csb.remaining());
@@ -57,22 +57,26 @@ public class ClientBetterUpperCaseUDP {
 	 */
 	public static Optional<String> decodeMessage(ByteBuffer buffer) {
 		buffer.flip();
-		if(buffer.remaining() < Integer.BYTES) {
-			return Optional.empty(); 
+		try {
+			if(buffer.remaining() < Integer.BYTES) {
+				return Optional.empty(); 
+			}
+			var size = buffer.getInt();
+			if(size <=0||buffer.remaining() < size) {
+				return Optional.empty();
+			}
+			var primarylimit = buffer.limit();
+			buffer.limit(size+buffer.position());
+			var cs = ASCII_CHARSET.decode(buffer).toString();
+			if(!Charset.isSupported(cs)) {
+				return Optional.empty();
+			}
+			buffer.limit(primarylimit);
+			var msg = Charset.forName(cs).decode(buffer).toString();
+			return Optional.of(msg);
+		}finally {
+			buffer.compact();
 		}
-		var size = buffer.getInt();
-		if(size <=0||buffer.remaining() < size) {
-			return Optional.empty();
-		}
-		var primarylimit = buffer.limit();
-		buffer.limit(size+buffer.position());
-		var cs = ASCII_CHARSET.decode(buffer).toString();
-		if(!Charset.isSupported(cs)) {
-			return Optional.empty();
-		}
-		buffer.limit(primarylimit);
-		var msg = Charset.forName(cs).decode(buffer).toString();
-		return Optional.of(msg);
 	}
 
 	public static void usage() {
@@ -97,7 +101,7 @@ public class ClientBetterUpperCaseUDP {
 				var dc = DatagramChannel.open()){
 			while (scanner.hasNextLine()) {
 				var line = scanner.nextLine();
-				
+
 				var message = encodeMessage(line, charsetName);
 				if (message.isEmpty()) {
 					System.out.println("Line is too long to be sent using the protocol BetterUpperCase");
@@ -108,7 +112,7 @@ public class ClientBetterUpperCaseUDP {
 				dc.send(packet, destination);
 				buffer.clear();
 				dc.receive(buffer);
-				
+
 				decodeMessage(buffer).ifPresentOrElse(
 						(str) -> System.out.println("Received: " + str), 
 						() -> System.out.println("Received an invalid paquet"));
