@@ -47,7 +47,7 @@ public class ClientUpperCaseUDPFile {
 		var upperCaseLines = new ArrayList<String>();
 		try(var dc =DatagramChannel.open()){
 			dc.bind(null);
-			var receiver = Thread.ofPlatform().start(()->{
+			Thread.ofPlatform().start(()->{
 				for(;!Thread.currentThread().isInterrupted();) {
 					try {
 						bb.clear();
@@ -57,8 +57,10 @@ public class ClientUpperCaseUDPFile {
 						queue.put(msg);
 					}catch(ClosedByInterruptException e) {
 						logger.info("Channel Closed");
+						return;
 					} catch (AsynchronousCloseException e) {
 						logger.info("Channel Closed ");
+						return;
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,"IOException ",e);
 					} catch (InterruptedException e) {
@@ -74,7 +76,6 @@ public class ClientUpperCaseUDPFile {
 				}
 				upperCaseLines.add(msg);
 			}
-			receiver.interrupt();
 		}
 
 		// Write upperCaseLines to outFilename in UTF-8

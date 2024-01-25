@@ -37,7 +37,7 @@ public class ClientUpperCaseUDPRetry {
 		try(var dc = DatagramChannel.open()){
 			dc.bind(null);
 
-			var receiver = Thread.ofPlatform().start(()->{
+			Thread.ofPlatform().start(()->{
 				for(;!Thread.currentThread().isInterrupted();){
 					try {
 						buffer.clear();
@@ -48,8 +48,10 @@ public class ClientUpperCaseUDPRetry {
 						logger.info(msg);
 					}catch(ClosedByInterruptException e) {
 						logger.info("Channel Closed");
+						return;
 					} catch (AsynchronousCloseException e) {
 						logger.info("Channel Closed ");
+						return;
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,"IOException ",e);
 					} catch (InterruptedException e) {
@@ -69,7 +71,6 @@ public class ClientUpperCaseUDPRetry {
 						msg = queue.poll(timeout,TimeUnit.MILLISECONDS);
 					}
 				}
-				receiver.interrupt();
 			}
 		}
 	}
