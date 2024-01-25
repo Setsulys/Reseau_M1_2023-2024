@@ -55,17 +55,15 @@ public class ClientUpperCaseUDPFile {
 						bb.flip();
 						var msg = UTF8.decode(bb).toString();
 						queue.put(msg);
-
 					}catch(ClosedByInterruptException e) {
-						logger.info("ClosedByInterruptException");
+						logger.info("Channel Closed");
 					} catch (AsynchronousCloseException e) {
-						logger.info("AsynchronousCloseException ");
+						logger.info("Channel Closed ");
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,"IOException ",e);
 					} catch (InterruptedException e) {
-						logger.info("Interrupted Exception ");
-
-					}					
+						logger.log(Level.WARNING,"Interrupted Exception",e);
+					}				
 				}
 			});
 			for(var line : lines) {

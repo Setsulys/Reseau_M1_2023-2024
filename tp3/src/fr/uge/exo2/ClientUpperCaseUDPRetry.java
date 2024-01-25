@@ -46,15 +46,14 @@ public class ClientUpperCaseUDPRetry {
 						var msg = cs.decode(buffer).toString();
 						queue.put(msg);
 						logger.info(msg);
-
 					}catch(ClosedByInterruptException e) {
-						logger.info("ClosedByInterruptException");
+						logger.info("Channel Closed");
 					} catch (AsynchronousCloseException e) {
-						logger.info("AsynchronousCloseException ");
+						logger.info("Channel Closed ");
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,"IOException ",e);
 					} catch (InterruptedException e) {
-						logger.info("Interrupted Exception ");
+						logger.log(Level.WARNING,"Interrupted Exception",e);
 					}	
 				}
 

@@ -47,13 +47,13 @@ public class ClientUpperCaseUDPTimeout {
 						logger.info(msg);
 						buffer.clear();
 					}catch(ClosedByInterruptException e) {
-						logger.info("ClosedByInterruptException");
+						logger.info("Channel Closed");
 					} catch (AsynchronousCloseException e) {
-						logger.info("AsynchronousCloseException ");
+						logger.info("Channel Closed ");
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,"IOException ",e);
 					} catch (InterruptedException e) {
-						logger.info("Interrupted Exception ");
+						logger.log(Level.WARNING,"Interrupted Exception",e);
 					}	
 				}
 
