@@ -38,7 +38,7 @@ public class ClientUpperCaseUDPTimeout {
 			dc.bind(null);
 
 			Thread.ofPlatform().start(()->{
-				for(;!Thread.currentThread().isInterrupted();){
+				for(;;){
 					try {
 						dc.receive(buffer);
 						buffer.flip();
@@ -46,17 +46,13 @@ public class ClientUpperCaseUDPTimeout {
 						queue.put(msg);
 						logger.info(msg);
 						buffer.clear();
-					}catch(ClosedByInterruptException e) {
+					}catch(AsynchronousCloseException | InterruptedException e) {
 						logger.info("Channel Closed");
-						return;
-					} catch (AsynchronousCloseException e) {
-						logger.info("Channel Closed ");
 						return;
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,"IOException ",e);
-					} catch (InterruptedException e) {
-						logger.info("Interrupted Exception ");
-					}	
+						return;
+					}
 				}
 
 

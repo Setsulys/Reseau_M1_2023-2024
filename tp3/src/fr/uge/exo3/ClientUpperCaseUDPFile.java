@@ -48,30 +48,28 @@ public class ClientUpperCaseUDPFile {
 		try(var dc =DatagramChannel.open()){
 			dc.bind(null);
 			Thread.ofPlatform().start(()->{
-				for(;!Thread.currentThread().isInterrupted();) {
+				for(;;) {
 					try {
 						bb.clear();
 						dc.receive(bb);
 						bb.flip();
 						var msg = UTF8.decode(bb).toString();
 						queue.put(msg);
-					}catch(ClosedByInterruptException e) {
+					}catch(AsynchronousCloseException | InterruptedException e) {
 						logger.info("Channel Closed");
-						return;
-					} catch (AsynchronousCloseException e) {
-						logger.info("Channel Closed ");
 						return;
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,"IOException ",e);
-					} catch (InterruptedException e) {
-						logger.info("Interrupted Exception ");
+						return;
 					}				
 				}
 			});
 			for(var line : lines) {
 				String msg = null;
+				var bbs= UTF8.encode(line);
 				while(msg ==null) {
-					dc.send(UTF8.encode(line), server);
+					dc.send(bbs, server);
+					bbs.flip();
 					msg=queue.poll(timeout,TimeUnit.MILLISECONDS);
 				}
 				upperCaseLines.add(msg);

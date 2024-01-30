@@ -38,7 +38,7 @@ public class ClientUpperCaseUDPRetry {
 			dc.bind(null);
 
 			Thread.ofPlatform().start(()->{
-				for(;!Thread.currentThread().isInterrupted();){
+				for(;;){
 					try {
 						buffer.clear();
 						dc.receive(buffer);
@@ -46,17 +46,13 @@ public class ClientUpperCaseUDPRetry {
 						var msg = cs.decode(buffer).toString();
 						queue.put(msg);
 						logger.info(msg);
-					}catch(ClosedByInterruptException e) {
+					}catch(AsynchronousCloseException | InterruptedException e) {
 						logger.info("Channel Closed");
-						return;
-					} catch (AsynchronousCloseException e) {
-						logger.info("Channel Closed ");
 						return;
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,"IOException ",e);
-					} catch (InterruptedException e) {
-						logger.info("Interrupted Exception ");
-					}	
+						return;
+					}
 				}
 
 
@@ -66,8 +62,10 @@ public class ClientUpperCaseUDPRetry {
 				while (scanner.hasNextLine()) {
 					var line = scanner.nextLine();
 					String msg=null;
+					var bb = cs.encode(line);
 					while(msg == null) {
-						dc.send(cs.encode(line), server);
+						dc.send(bb, server);
+						bb.flip();
 						msg = queue.poll(timeout,TimeUnit.MILLISECONDS);
 					}
 				}
