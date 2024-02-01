@@ -98,12 +98,15 @@ public class ClientIdUpperCaseUDPOneByOne {
 				bb.putLong(id);
 				bb.put(UTF8.encode(lines.get(id)));
 				while(response == null || id != response.id()) {
-					bb.flip();
+					
 					if(System.currentTimeMillis() - timer >=timeout) {
+						bb.flip();
 						dc.send(bb,server);
 						timer = System.currentTimeMillis();
-						response = queue.poll(timeout-timer, TimeUnit.MILLISECONDS);
-					}					
+					}		
+					else {
+						response = queue.poll(timeout-(System.currentTimeMillis() -timer), TimeUnit.MILLISECONDS);
+					}
 				}
 				upperCaseLines.add(response.message());
 
