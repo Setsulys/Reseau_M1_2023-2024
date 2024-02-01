@@ -99,7 +99,7 @@ public class ClientIdUpperCaseUDPOneByOne {
 				bb.put(UTF8.encode(lines.get(id)));
 				while(response == null || id != response.id()) {
 					bb.flip();
-					if(System.currentTimeMillis() - timer >=300) {
+					if(System.currentTimeMillis() - timer >=timeout) {
 						dc.send(bb,server);
 						timer = System.currentTimeMillis();
 						response = queue.poll(timeout-timer, TimeUnit.MILLISECONDS);
