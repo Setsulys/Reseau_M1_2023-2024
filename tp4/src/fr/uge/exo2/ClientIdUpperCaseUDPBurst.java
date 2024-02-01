@@ -136,7 +136,6 @@ public class ClientIdUpperCaseUDPBurst {
         	
         	public boolean allReceived() {
         		synchronized(lock) {
-        			//System.out.println(log.cardinality()+"   eq" + log.size());
         			return log.cardinality()==size;
         		}
         	}
