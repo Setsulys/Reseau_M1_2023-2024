@@ -17,6 +17,8 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class ClientIdUpperCaseUDPBurst {
 
@@ -51,23 +53,21 @@ public class ClientIdUpperCaseUDPBurst {
         private void senderThreadRun() {
         	var bb = ByteBuffer.allocate(BUFFER_SIZE);
         	while(!answersLog.allReceived()) {
-            	for(var id =0; id< nbLines ;id++) {
-            		try {
-            			if(!answersLog.get(id)) {
-            				bb.clear();
-                			bb.putLong(id);
-                			bb.put(UTF8.encode(lines.get(id)));
-                			bb.flip();
-        					dc.send(bb, serverAddress);
-            			}
-        			}catch(AsynchronousCloseException e) {
-        				logger.info("Channel Closed");
-        				return;
-        			} catch (IOException e) {
-        				logger.log(Level.SEVERE,"IOException ",e);
-        				return;
-        			}
-            	}
+        		for(var id : answersLog.notReceived()) {
+        			try {
+        				bb.clear();
+            			bb.putLong(id);
+            			bb.put(UTF8.encode(lines.get(id)));
+            			bb.flip();
+    					dc.send(bb, serverAddress);
+    			}catch(AsynchronousCloseException e) {
+    				logger.info("Channel Closed");
+    				return;
+    			} catch (IOException e) {
+    				logger.log(Level.SEVERE,"IOException ",e);
+    				return;
+    			}
+        		}
         	}
         }
 
@@ -147,13 +147,12 @@ public class ClientIdUpperCaseUDPBurst {
         		
         	}
         	
-        	public boolean get(int index) {
+        	public List<Integer> notReceived(){
         		synchronized(lock) {
-        			return log.get(index);
+        			return IntStream.range(0,size).filter(f-> !log.get(f)).boxed().collect(Collectors.toList());
         		}
         	}
-            // TODO Thread-safe class handling the information about missing lines
-
+        	
         }
     }
 
