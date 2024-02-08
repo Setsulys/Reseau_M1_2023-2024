@@ -16,11 +16,9 @@ import javax.xml.crypto.Data;
 public class ServerEchoMultiPort {
     private static final Logger logger = Logger.getLogger(ServerEchoMultiPort.class.getName());
 
-    //private final DatagramChannel dc;
     private final Selector selector;
     private final int BUFFER_SIZE = 1024;
-    //private final ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-    private SocketAddress sender;
+   
     private final int portInf;
     private final int portSup;
     
@@ -30,6 +28,7 @@ public class ServerEchoMultiPort {
     	private final DatagramChannel dc;
     	private final ByteBuffer contextBuffer = ByteBuffer.allocate(BUFFER_SIZE);
     	private final SelectionKey key;
+    	private InetSocketAddress sender;
     	
     	private Context(DatagramChannel dc,SelectionKey key) {
     		Objects.requireNonNull(dc);
@@ -41,7 +40,7 @@ public class ServerEchoMultiPort {
     	
     	public void doRead() throws IOException {
             contextBuffer.clear();
-            var sendFrom =dc.receive(contextBuffer);
+            var sendFrom =(InetSocketAddress) dc.receive(contextBuffer);
         	if(sendFrom==null) {
         		logger.warning("The selector decieved us");
         		return;
