@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 import javax.xml.crypto.Data;
@@ -25,9 +26,20 @@ public class ServerEchoMultiPort {
     
     class Context{
     	
-    	private final ByteBuffer contextBuffer = ByteBuffer.allocate(BUFFER_SIZE);
     	
-    	public void doRead(SelectionKey key) throws IOException {
+    	private final DatagramChannel dc;
+    	private final ByteBuffer contextBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+    	private final SelectionKey key;
+    	
+    	private Context(DatagramChannel dc,SelectionKey key) {
+    		Objects.requireNonNull(dc);
+    		Objects.requireNonNull(key);
+    		this.dc =dc;
+    		this.key=key;
+    		
+    	}
+    	
+    	public void doRead() throws IOException {
             contextBuffer.clear();
             var channel = (DatagramChannel) key.channel();
             var sendFrom =channel.receive(contextBuffer);
@@ -35,12 +47,12 @@ public class ServerEchoMultiPort {
         		logger.warning("The selector decieved us");
         		return;
         	}
-        	sender  =sendFrom;
+        	sender =sendFrom;
         	contextBuffer.flip();
         	key.interestOps(SelectionKey.OP_WRITE);
     	}
     	
-        private void doWrite(SelectionKey key) throws IOException {
+        private void doWrite() throws IOException {
         	var channel = (DatagramChannel) key.channel();
         	channel.send(contextBuffer, sender);
         	if(contextBuffer.hasRemaining()) {
@@ -61,7 +73,8 @@ public class ServerEchoMultiPort {
         	var dc = DatagramChannel.open();
             dc.bind(new InetSocketAddress(port));
             dc.configureBlocking(false);
-            dc.register(selector, SelectionKey.OP_READ, new Context());
+            var key = dc.register(selector, SelectionKey.OP_READ);
+            key.attach(new Context(dc,key));
         }
 
     }
@@ -93,12 +106,12 @@ public class ServerEchoMultiPort {
 
     private void doRead(SelectionKey key) throws IOException {
     	var context = (Context) key.attachment();
-    	context.doRead(key);
+    	context.doRead();
     }
 
     private void doWrite(SelectionKey key) throws IOException {
     	var context = (Context) key.attachment();
-    	context.doWrite(key);
+    	context.doWrite();
     }
 
     public static void usage() {
