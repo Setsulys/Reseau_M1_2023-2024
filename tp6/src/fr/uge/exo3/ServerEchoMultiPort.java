@@ -41,8 +41,7 @@ public class ServerEchoMultiPort {
     	
     	public void doRead() throws IOException {
             contextBuffer.clear();
-            var channel = (DatagramChannel) key.channel();
-            var sendFrom =channel.receive(contextBuffer);
+            var sendFrom =dc.receive(contextBuffer);
         	if(sendFrom==null) {
         		logger.warning("The selector decieved us");
         		return;
@@ -53,8 +52,7 @@ public class ServerEchoMultiPort {
     	}
     	
         private void doWrite() throws IOException {
-        	var channel = (DatagramChannel) key.channel();
-        	channel.send(contextBuffer, sender);
+        	dc.send(contextBuffer, sender);
         	if(contextBuffer.hasRemaining()) {
         		logger.warning("Packet has not been sended");
         		return;
