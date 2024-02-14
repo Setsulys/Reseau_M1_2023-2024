@@ -170,7 +170,6 @@ public class ClientIdUpperCaseUDPOneByOne {
 		}
 		var id = rBuffer.getLong();
 		if(id != currentLine) {
-			logger.info("Wrong packet");
 			return;
 		}
 		upperCaseLines.add(UTF8.decode(rBuffer).toString());
@@ -195,6 +194,7 @@ public class ClientIdUpperCaseUDPOneByOne {
 		sBuffer.put(UTF8.encode(lines.get(currentLine)));
 		sBuffer.flip();
 		dc.send(sBuffer,serverAddress);
+		lastTime= System.currentTimeMillis();
 		if(sBuffer.hasRemaining()) {
 			logger.info("Packet not sent");
 			return;
