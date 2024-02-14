@@ -1,0 +1,11 @@
+Charizard;Stealth:20;Heroism:7;Gluttony:12
+Charizard;Stealth:20;Heroism:7;Gluttony:12
+Pikachu;Gluttony:17;Heroism:19
+Gardevoir;Stealth:11;Mon$y:20;Gluttony:1;Str€ngth:2;Heroism:12
+Sylveon;Charm:0;Heroism:18;Sp€€d:20
+Sylveon;Charm:0;Heroism:18;Sp€€d:20
+Lucario;Loneliness:20
+Lucario;Loneliness:20
+Gengar;Stealth:15;Mon$y:10;Gluttony:2;Heroism:1;Charm:16
+Gengar;Stealth:15;Mon$y:10;Gluttony:2;Heroism:1;Charm:16
+Umbreon;Stealth:11;Heroism:11;Sp€€d:3;Str€ngth:8;Charm:3
