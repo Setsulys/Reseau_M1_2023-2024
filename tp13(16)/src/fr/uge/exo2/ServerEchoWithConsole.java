@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.Channel;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -105,23 +107,48 @@ public class ServerEchoWithConsole {
 		console = Thread.ofPlatform().unstarted(this::consoleRun);
 	}
 
+	public boolean clientConnected(SelectionKey selectedKey) {
+		return (Context)selectedKey.attachment()!=null && !((Context)selectedKey.attachment()).closed;
+	}
+
 	private void consoleRun() {
 		try (var scanner = new Scanner(System.in)){
 			while (scanner.hasNextLine()) {
 				var command = scanner.nextLine();
 				switch(command) {
 				case "INFO":{
-					var clients = selector.keys().size()-1;
-					logger.info("Connected client : "+ clients);
+					var nbClient =selector.keys().stream().filter(this::clientConnected).count();
+					logger.info("Connected client : "+ nbClient);
 					break;
 				}
 				case "SHUTDOWN":{
 					logger.info("Shutdown");
-					
+					try {
+						serverSocketChannel.close();
+					}catch(AsynchronousCloseException e) {
+						logger.info("Close server connections");
+					}catch (IOException e) {
+						logger.severe("IOExeption");
+					}
 					break;
 				}
 				case "SHUTDOWNNOW":{
 					logger.info("ShutdownNow");
+					selector.keys().forEach(this::silentlyClose);
+					try {
+						selector.close();
+					} catch (IOException e) {;
+					}
+					try {
+						Thread.currentThread().interrupt();
+						serverSocketChannel.close();
+					}catch(AsynchronousCloseException e) {
+						logger.info("Close server connections");
+						return;
+					}catch (IOException e) {
+						logger.severe("IOExeption");
+						return;
+					}
 					break;
 				}
 				default:{
@@ -132,7 +159,7 @@ public class ServerEchoWithConsole {
 		}
 		logger.info("Console thread stopping");
 	}
-	
+
 	public void launch() throws IOException {
 		serverSocketChannel.configureBlocking(false);
 		serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
