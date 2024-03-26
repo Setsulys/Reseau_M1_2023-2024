@@ -16,48 +16,39 @@ public class MessageReader implements Reader<Message>{
 
 	@Override
 	public ProcessStatus process(ByteBuffer bb) {
-		// TODO Auto-generated method stub
-		if(state == State.DONE || state == State.ERROR) {
+		switch(state) {
+		case WAITINGLOGIN: 
+		{
+			var loginR = reader.process(bb);
+			if(loginR == ProcessStatus.REFILL) {
+				return ProcessStatus.REFILL;
+			}
+			if(loginR == ProcessStatus.ERROR) {
+				state = State.ERROR;
+				return ProcessStatus.ERROR;
+			}
+			state = State.WAITINGMESSAGE;
+			login = reader.get();
+			reader.reset();
+		}
+		case WAITINGMESSAGE:
+		{
+			var messageR = reader.process(bb);
+			if(messageR == ProcessStatus.REFILL) {
+				return ProcessStatus.REFILL;
+			}
+			if(messageR == ProcessStatus.ERROR) {
+				state = State.ERROR;
+				return ProcessStatus.ERROR;
+			}
+			message = reader.get();
+			break;
+		}
+		default:{
 			throw new IllegalStateException();
 		}
-		try {
-			switch(state) {
-			case WAITINGLOGIN: 
-			{
-				var loginR = reader.process(bb);
-				if(loginR == ProcessStatus.REFILL) {
-					return ProcessStatus.REFILL;
-				}
-				if(loginR == ProcessStatus.ERROR) {
-					state = State.ERROR;
-					return ProcessStatus.ERROR;
-				}
-				state = State.WAITINGMESSAGE;
-				login = reader.get();
-				reader.reset();
-			}
-			case WAITINGMESSAGE:
-			{
-				var messageR = reader.process(bb);
-				if(messageR == ProcessStatus.REFILL) {
-					return ProcessStatus.REFILL;
-				}
-				if(messageR == ProcessStatus.ERROR) {
-					state = State.ERROR;
-					return ProcessStatus.ERROR;
-				}
-				message = reader.get();
-				break;
-			}
-			default:{
-				throw new IllegalStateException();
-			}
-			}
-
-
-		}finally {
-			bb.compact();
 		}
+
 		state = State.DONE;
 		loginMessage = new Message(login, message);
 		return ProcessStatus.DONE;

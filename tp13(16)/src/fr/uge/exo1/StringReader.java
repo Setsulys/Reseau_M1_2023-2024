@@ -53,14 +53,12 @@ public class StringReader implements Reader<String>{
 			}finally {
 				buffer.compact();
 			}
-			System.out.println(missing);
 			if(internalBuffer.position() < size) {
 				return ProcessStatus.REFILL;
 			}
 			state = State.DONE;
 			internalBuffer.flip();
 			stringValue = UTF8.decode(internalBuffer).toString();
-			System.out.println(stringValue);
 		}
 		return ProcessStatus.DONE;
 	}

@@ -42,19 +42,16 @@ public class ServerChatOn {
 		 */
 		private void processIn() {
 			for (;;) {
-				System.out.println("IN processIN"+bufferIn);
 				Reader.ProcessStatus status = messageReader.process(bufferIn);
 				switch (status) {
 				case DONE:
 					var value = messageReader.get();
 					server.broadcast(value);
 					messageReader.reset();
-					System.out.println("process bufferin"+bufferIn);
 					break;
 				case REFILL:
 					return;
 				case ERROR:
-					System.out.println("PROCESSIN ERROR");
 					silentlyClose();
 					return;
 				}
@@ -84,8 +81,6 @@ public class ServerChatOn {
 				var message = queue.poll();
 				var loginBb = UTF8.encode(message.login());
 				var messageBb = UTF8.encode(message.message());
-				//				System.out.println("MESSAGE: "+message.login()+" "+message.message());
-				//				System.out.println(bufferOut+"and "+bufferIn);
 				bufferOut.putInt(loginBb.remaining());
 				bufferOut.put(loginBb);
 				bufferOut.putInt(messageBb.remaining());
@@ -139,9 +134,7 @@ public class ServerChatOn {
 				logger.info("Channel Closed");
 				closed=true;
 			}
-			System.out.println("BEFORE PROCESSIN"+bufferIn);
 			processIn();
-			System.out.println("AFTER PROCESSIN"+bufferIn);
 			updateInterestOps();
 		}
 

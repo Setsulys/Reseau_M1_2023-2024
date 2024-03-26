@@ -24,7 +24,6 @@ public class MessageReader implements Reader<Message>{
 			case WAITINGLOGIN: 
 			{
 				var loginR = reader.process(bb);
-				System.out.println(bb);
 				if(loginR == ProcessStatus.REFILL) {
 					return ProcessStatus.REFILL;
 				}
@@ -39,7 +38,6 @@ public class MessageReader implements Reader<Message>{
 			case WAITINGMESSAGE:
 			{
 				var messageR = reader.process(bb);
-				System.out.println(bb);
 				if(messageR == ProcessStatus.REFILL) {
 					return ProcessStatus.REFILL;
 				}
@@ -56,7 +54,6 @@ public class MessageReader implements Reader<Message>{
 			}
 		state = State.DONE;
 		loginMessage = new Message(login, message);
-		System.out.println("MESSAGE READER"+bb);
 		return ProcessStatus.DONE;
 	}
 

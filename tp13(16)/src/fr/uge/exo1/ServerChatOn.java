@@ -7,45 +7,46 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.Queue;
-import java.util.Scanner;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ClientChat {
-
+public class ServerChatOn {
 	static private class Context {
 		private final SelectionKey key;
 		private final SocketChannel sc;
 		private final ByteBuffer bufferIn = ByteBuffer.allocate(BUFFER_SIZE);
 		private final ByteBuffer bufferOut = ByteBuffer.allocate(BUFFER_SIZE);
 		private final ArrayDeque<Message> queue = new ArrayDeque<>();
+		private final ServerChatOn server; // we could also have Context as an instance class, which would naturally
+		private final Charset UTF8 = StandardCharsets.UTF_8;							// give access to ServerChatInt.this
 		private boolean closed = false;
-		private static final Charset UTF8 = StandardCharsets.UTF_8;
 		private MessageReader messageReader = new MessageReader();
 
-		private Context(SelectionKey key) {
+		private Context(ServerChatOn server, SelectionKey key) {
 			this.key = key;
 			this.sc = (SocketChannel) key.channel();
+			this.server = server;
 		}
 
 		/**
 		 * Process the content of bufferIn
 		 *
-		 * The convention is that bufferIn is in write-mode before the call to process
-		 * and after the call
+		 * The convention is that bufferIn is in write-mode before the call to process and
+		 * after the call
 		 *
 		 */
 		private void processIn() {
-			for(;;) {
+			for (;;) {
 				Reader.ProcessStatus status = messageReader.process(bufferIn);
-				switch(status) {
+				switch (status) {
 				case DONE:
 					var value = messageReader.get();
-					System.out.println(value.login()+": "+value.message());
+					server.broadcast(value);
 					messageReader.reset();
 					break;
 				case REFILL:
@@ -53,8 +54,6 @@ public class ClientChat {
 				case ERROR:
 					silentlyClose();
 					return;
-				default:
-					throw new IllegalStateException();
 				}
 			}
 		}
@@ -62,9 +61,9 @@ public class ClientChat {
 		/**
 		 * Add a message to the message queue, tries to fill bufferOut and updateInterestOps
 		 *
-		 * @param bb
+		 * @param msg
 		 */
-		private void queueMessage(Message msg) {
+		public void queueMessage(Message msg) {
 			// TODO
 			queue.add(msg);
 			processOut();
@@ -76,21 +75,17 @@ public class ClientChat {
 		 *
 		 */
 		private void processOut() {
-			if(queue.isEmpty()) {
-				logger.info("Queue is empty");
-				return;
+			// TODO
+			while(bufferOut.remaining()>=BUFFER_SIZE && !queue.isEmpty()) {
+				//bufferOut.putInt(queue.poll());
+				var message = queue.poll();
+				var loginBb = UTF8.encode(message.login());
+				var messageBb = UTF8.encode(message.message());
+				bufferOut.putInt(loginBb.remaining());
+				bufferOut.put(loginBb);
+				bufferOut.putInt(messageBb.remaining());
+				bufferOut.put(messageBb);
 			}
-			var message =  queue.poll();
-			var loginBb = UTF8.encode(message.login());
-			var messageBb = UTF8.encode(message.message());
-			if(bufferOut.remaining() < 2*Integer.BYTES+loginBb.remaining()+messageBb.remaining()) {
-				logger.info("Not enought space");
-				return;
-			}
-			bufferOut.putInt(loginBb.remaining());
-			bufferOut.put(loginBb);
-			bufferOut.putInt(messageBb.remaining());
-			bufferOut.put(messageBb);
 		}
 
 		/**
@@ -103,7 +98,6 @@ public class ClientChat {
 		 */
 
 		private void updateInterestOps() {
-			// TODO
 			var interestOps=0;
 			if(bufferOut.position()!=0) {
 				interestOps|= SelectionKey.OP_WRITE;
@@ -135,9 +129,10 @@ public class ClientChat {
 		 * @throws IOException
 		 */
 		private void doRead() throws IOException {
+			// TODO
 			if(sc.read(bufferIn)==-1) {
-				logger.info("Channel closed");
-				closed =true;
+				logger.info("Channel Closed");
+				closed=true;
 			}
 			processIn();
 			updateInterestOps();
@@ -153,116 +148,74 @@ public class ClientChat {
 		 */
 
 		private void doWrite() throws IOException {
-			// TODO
 			sc.write(bufferOut.flip());
 			bufferOut.compact();
 			updateInterestOps();
 		}
 
-		public void doConnect() throws IOException {
-			if (!sc.finishConnect()) {
-				return; // the selector gave a bad hint
-			}
-			key.interestOps(SelectionKey.OP_READ);
-		}
 	}
 
-	private static int BUFFER_SIZE = 10_000;
-	private static Logger logger = Logger.getLogger(ClientChat.class.getName());
+	private static final int BUFFER_SIZE = 2048 +2*Integer.BYTES;
+	private static final Logger logger = Logger.getLogger(ServerChatOn.class.getName());
 
-	private final SocketChannel sc;
+	private final ServerSocketChannel serverSocketChannel;
 	private final Selector selector;
-	private final InetSocketAddress serverAddress;
-	private final String login;
-	private final Thread console;
-	private Context uniqueContext;
-	private final ArrayDeque<Message> selectorQueue = new ArrayDeque<>();
-	private final Object lock = new Object();
 
-	public ClientChat(String login, InetSocketAddress serverAddress) throws IOException {
-		this.serverAddress = serverAddress;
-		this.login = login;
-		this.sc = SocketChannel.open();
-		this.selector = Selector.open();
-		this.console = Thread.ofPlatform().unstarted(this::consoleRun);
-	}
-
-	private void consoleRun() {
-		try {
-			try (var scanner = new Scanner(System.in)) {
-				while (scanner.hasNextLine()) {
-					var msg = scanner.nextLine();
-					sendCommand(msg);
-				}
-			}
-			logger.info("Console thread stopping");
-		} catch (InterruptedException e) {
-			logger.info("Console thread has been interrupted");
-		}
-	}
-
-	/**
-	 * Send instructions to the selector via a BlockingQueue and wake it up
-	 *
-	 * @param msg
-	 * @throws InterruptedException
-	 */
-
-	private void sendCommand(String msg) throws InterruptedException {
-		synchronized(lock) {
-			selectorQueue.add(new Message(login,msg));
-			selector.wakeup();
-		}
-	}
-
-	/**
-	 * Processes the command from the BlockingQueue 
-	 */
-
-	private void processCommands() {
-		synchronized(lock) {
-			var msg = selectorQueue.poll();
-			while(msg!=null) {
-				uniqueContext.queueMessage(msg);
-				msg = selectorQueue.poll();
-			}
-		}
+	public ServerChatOn(int port) throws IOException {
+		serverSocketChannel = ServerSocketChannel.open();
+		serverSocketChannel.bind(new InetSocketAddress(port));
+		selector = Selector.open();
 	}
 
 	public void launch() throws IOException {
-		sc.configureBlocking(false);
-		var key = sc.register(selector, SelectionKey.OP_CONNECT);
-		uniqueContext = new Context(key);
-		key.attach(uniqueContext);
-		sc.connect(serverAddress);
-
-		console.start();
-
+		serverSocketChannel.configureBlocking(false);
+		serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 		while (!Thread.interrupted()) {
+			Helpers.printKeys(selector); // for debug
+			System.out.println("Starting select");
 			try {
 				selector.select(this::treatKey);
-				processCommands();
 			} catch (UncheckedIOException tunneled) {
 				throw tunneled.getCause();
 			}
+			System.out.println("Select finished");
 		}
 	}
 
 	private void treatKey(SelectionKey key) {
+		Helpers.printSelectedKey(key); // for debug
 		try {
-			if (key.isValid() && key.isConnectable()) {
-				uniqueContext.doConnect();
-			}
-			if (key.isValid() && key.isWritable()) {
-				uniqueContext.doWrite();
-			}
-			if (key.isValid() && key.isReadable()) {
-				uniqueContext.doRead();
+			if (key.isValid() && key.isAcceptable()) {
+				doAccept(key);
 			}
 		} catch (IOException ioe) {
 			// lambda call in select requires to tunnel IOException
 			throw new UncheckedIOException(ioe);
 		}
+		try {
+			if (key.isValid() && key.isWritable()) {
+				((Context) key.attachment()).doWrite();
+			}
+			if (key.isValid() && key.isReadable()) {
+				((Context) key.attachment()).doRead();
+			}
+		} catch (IOException e) {
+			logger.log(Level.INFO, "Connection closed with client due to IOException", e);
+			silentlyClose(key);
+		}
+	}
+
+	private void doAccept(SelectionKey key) throws IOException {
+		// TODO
+		ServerSocketChannel ssc = (ServerSocketChannel) key.channel();
+		SocketChannel sc = ssc.accept();
+		if(sc==null) {
+			logger.info("Selector gave bad hint");
+			return;
+		}
+		sc.configureBlocking(false);
+		var sKey = sc.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+		sKey.attach(new Context(this, sKey));
 	}
 
 	private void silentlyClose(SelectionKey key) {
@@ -274,15 +227,31 @@ public class ClientChat {
 		}
 	}
 
+	/**
+	 * Add a message to all connected clients queue
+	 *
+	 * @param msg
+	 */
+	private void broadcast(Message msg) {
+		// TODO
+		for(var key : selector.keys()) {
+			Context context = (Context) key.attachment();
+			if(context != null)
+			{
+				context.queueMessage(msg);
+			}
+		}
+	}
+
 	public static void main(String[] args) throws NumberFormatException, IOException {
-		if (args.length != 3) {
+		if (args.length != 1) {
 			usage();
 			return;
 		}
-		new ClientChat(args[0], new InetSocketAddress(args[1], Integer.parseInt(args[2]))).launch();
+		new ServerChatOn(Integer.parseInt(args[0])).launch();
 	}
 
 	private static void usage() {
-		System.out.println("Usage : ClientChat login hostname port");
+		System.out.println("Usage : ServerSumBetter port");
 	}
 }
