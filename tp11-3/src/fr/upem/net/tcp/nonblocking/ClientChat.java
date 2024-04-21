@@ -162,7 +162,7 @@ public class ClientChat {
 			// TODO
 			sc.write(bufferOut.flip());
 			bufferOut.compact();
-			processOut();
+				processOut();
 			updateInterestOps();
 		}
 
