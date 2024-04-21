@@ -77,23 +77,23 @@ public class ServerChatOn {
 		 */
 		private void processOut() {
 			// TODO
-			while(bufferOut.remaining()>=Integer.BYTES && !queue.isEmpty()) {
+			while(bufferOut.hasRemaining() && !queue.isEmpty()) {
 				var message = queue.poll();
 				var login = UTF8.encode(message.login());
 				var txt = UTF8.encode(message.message());
-				if(bufferOut.remaining()<=Integer.BYTES) {
+				if(bufferOut.remaining()<Integer.BYTES) {
 					return;
 				}
 				bufferOut.putInt(login.remaining());
-				if(bufferOut.remaining()<=login.remaining()*Byte.BYTES) {
+				if(bufferOut.remaining()<login.remaining()*Byte.BYTES) {
 					return;
 				}
 				bufferOut.put(login);
-				if(bufferOut.remaining()<=Integer.BYTES) {
+				if(bufferOut.remaining()<Integer.BYTES) {
 					return;
 				}
 				bufferOut.putInt(txt.remaining());
-				if(bufferOut.remaining()<=txt.remaining()*Byte.BYTES) {
+				if(bufferOut.remaining()<txt.remaining()*Byte.BYTES) {
 					return;
 				}
 				bufferOut.put(txt);
@@ -163,7 +163,7 @@ public class ServerChatOn {
 			// TODO
 			sc.write(bufferOut.flip());
 			bufferOut.compact();
-			processIn();
+			processOut();
 			updateInterestOps();
 		}
 
